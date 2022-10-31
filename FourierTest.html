@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta  name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests Fourier</title>
+    <style>
+        body {
+            font-family: Cambria, sans-serif;
+            margin: 0 15vw;
+            line-height: 1em;
+        }
+        button {
+            font-family: Cambria, sans-serif;
+        }
+        #c {
+            position: center;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="c" width="500" height="500"></canvas>
+<div id="controls">
+    <label for="freq"> Frequency </label><input min="0" max="10" step="0.01" value="0.3" id="freq" type="number">
+    <label for="cycles"> Cycles </label><input min="0" max="1000" step="0.1" value="10" id="cycles" type="number">
+    <label for="dec"> Décalage </label><input min="0" max="5" step="0.1" value="1.1" id="dec" type="number">
+    <label for="z"> Zoom </label><input min="50" max="300" step="5" value="150" id="z" type="number">
+    <button id="animate"> Stop animation</button>
+</div>
+<script>
+    let canvas = document.getElementById('c');
+    let ctx = canvas.getContext('2d');
+    let freq = document.getElementById('freq');
+    let dec = document.getElementById('dec');
+    let cycles = document.getElementById('cycles');
+    let animate = document.getElementById('animate');
+    let z = document.getElementById('z');
+    const dx = 0;
+    const dy = canvas.height / 2;
+    const mx = canvas.width / 2;
+    let zoom = 150;
+
+    class C {
+        constructor(x, y) {
+            this.re = x;
+            this.im = y;
+        }
+
+        static polar(mod, arg) {
+            return new C(mod * Math.cos(arg), mod * Math.sin(arg));
+        }
+
+        add(o) {
+            return new C(this.re + o.re, this.im + o.im);
+        }
+
+        mult(o) {
+            return new C(this.re * o.re - this.im * o.im, this.re * o.im + this.im * o.re);
+        }
+
+        mul(num) {
+            return new C(this.re * num, this.im * num);
+        }
+
+        module() {
+            return Math.sqrt(this.re ** 2 + this.im ** 2);
+        }
+
+        arg() {
+            return Math.acos(this.re / this.module()) * (this.im < 0 ? -1 : 1);
+        }
+
+    }
+
+    function drawSinus() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let f = parseInt(freq.value);
+        ctx.beginPath();
+        for (let i = 0; i < canvas.width * (2 * Math.PI); ++i) {
+
+            ctx.lineTo(dx + (i / (2 * Math.PI)) * zoom, dy + Math.sin(i * f / (2 * Math.PI)) * zoom);
+        }
+        ctx.stroke();
+    }
+
+    let Frequency = parseFloat(freq.value);
+    let decalage = parseFloat(dec.value);
+
+    function drawPolar() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+
+        let cy = parseFloat(cycles.value);
+        for (let i = 0; i < 360 * (Frequency) * cy; ++i) {
+            //console.log(zoom);
+            let mod = Math.sin(i * Math.PI / 180 / Frequency);
+            let cp = C.polar((mod + decalage) / 2, Math.PI / 180 * i);
+            //console.log(`mod: ${Math.sin(i*Math.PI/180)*zoom}, arg: ${i}`);
+            ctx.lineTo(mx + cp.re * zoom, dy + cp.im * zoom)
+        }
+        ctx.stroke();
+    }
+
+    drawPolar();
+
+    freq.addEventListener('change', () => {
+        Frequency = parseFloat(freq.value);
+        drawPolar();
+    });
+    cycles.addEventListener('change', () => {
+        drawPolar();
+    });
+    dec.addEventListener('change', () => {
+        decalage = parseFloat(dec.value)
+        drawPolar();
+    });
+    z.addEventListener('change', () => {
+        zoom = parseInt(z.value)
+        drawPolar();
+    });
+
+    let add = 0.001;
+    let intervalId = 0;
+    let animating;
+
+    function startAnimation() {
+        animating = true;
+        intervalId = setInterval(() => {
+            let val = parseFloat(Frequency);
+            decalage = parseFloat(dec.value);
+            zoom = parseInt(z.value)
+
+            if (val > 0.9) {
+                add = -0.001;
+            } else if (val < 0.1) {
+                add = 0.001;
+            }
+            Frequency = (val + add).toString();
+            freq.value = Frequency;
+            drawPolar();
+        }, 30)
+    }
+
+    function stopAnimation() {
+        animating = false;
+        clearInterval(intervalId);
+    }
+
+    animate.addEventListener('click', () => {
+        if (animating) {
+            stopAnimation();
+            animate.innerText = "start animation";
+        } else {
+            startAnimation();
+            animate.innerText = "stop animation";
+        }
+    });
+
+    startAnimation();
+
+</script>
+
+</body>
+</html>
